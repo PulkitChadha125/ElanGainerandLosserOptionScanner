@@ -1,0 +1,309 @@
+import time
+import traceback
+import pandas as pd
+import pyotp
+import Zerodha_Integration
+from datetime import datetime, timedelta, timezone
+import Algofox
+BUYCE=False
+BUYPE=False
+tpce=False
+tppe=False
+slce=False
+slpe=False
+
+def write_to_order_logs(message):
+    with open('OrderLog.txt', 'a') as file:  # Open the file in append mode
+        file.write(message + '\n')
+
+
+def round_down_to_interval(dt, interval_minutes):
+    remainder = dt.minute % interval_minutes
+    minutes_to_current_boundary = remainder
+    rounded_dt = dt - timedelta(minutes=minutes_to_current_boundary)
+    rounded_dt = rounded_dt.replace(second=0, microsecond=0)
+    return rounded_dt
+
+def determine_min(minstr):
+    min=0
+    if minstr =="minute":
+        min=1
+    if minstr =="5minute":
+        min=5
+    if minstr =="15minute":
+        min=15
+    if minstr =="30minute":
+        min=30
+
+    return min
+
+result_dict_CE={}
+result_dict_PE={}
+
+def delete_file_contents(file_name):
+    try:
+        # Open the file in write mode, which truncates it (deletes contents)
+        with open(file_name, 'w') as file:
+            file.truncate(0)
+        print(f"Contents of {file_name} have been deleted.")
+    except FileNotFoundError:
+        print(f"File {file_name} not found.")
+    except Exception as e:
+        print(f"An error occurred: {str(e)}")
+
+
+def get_zerodha_credentials():
+    credentials = {}
+    try:
+        df = pd.read_csv('ZerodhaCredentials.csv')
+        for index, row in df.iterrows():
+            title = row['Title']
+            value = row['Value']
+            credentials[title] = value
+    except pd.errors.EmptyDataError:
+        print("The CSV file is empty or has no data.")
+    except FileNotFoundError:
+        print("The CSV file was not found.")
+    except Exception as e:
+        print("An error occurred while reading the CSV file:", str(e))
+    return credentials
+next_specific_part_time=datetime.now()
+credentials_dict = get_zerodha_credentials()
+user_id = credentials_dict.get('ZerodhaUserId')  # Login Id
+password = credentials_dict.get('ZerodhaPassword')  # Login password
+fakey = credentials_dict.get('Zerodha2fa')
+strategycode = credentials_dict.get('StrategyCode')
+twofa = pyotp.TOTP(fakey)
+twofa = twofa.now()
+Zerodha_Integration.login(user_id, password, twofa)
+Zerodha_Integration.get_all_instruments()
+def calculate_percentage_change(previous_close, present_close):
+    price_change = present_close - previous_close
+    percentage_change = (price_change / previous_close) * 100
+    return percentage_change
+def get_user_settings():
+    global result_dict_CE,result_dict_PE
+    try:
+        csv_path = 'TradeSettings_PE.csv'
+        df = pd.read_csv(csv_path)
+        df.columns = df.columns.str.strip()
+        result_dict_PE = {}
+        for index, row in df.iterrows():
+            # Create a nested dictionary for each symbol
+            symbol_dict = {
+                'Symbol': row['Symbol'],
+                'Target': row['Target'],
+                'Stoploss': row['Stoploss'],
+                'SmallTF': row['SmallTF'],
+                'BigTF': row['BigTF'],
+                "cool": row['Sync'],
+                "lotsize":row['lotsize'],
+                "runtime": datetime.now(),
+                "previousclose":None,"presentclose":None,
+                'percentageChange': None,
+                'PE_LTP':None,
+                'TargetValue': None,
+                'StoplossValue': None,
+            }
+            result_dict_PE[row['Symbol']] = symbol_dict
+
+    except Exception as e:
+        print("Error happened in fetching symbol PUT", str(e))
+    try:
+        csv_path = 'TradeSettings_CE.csv'
+        df = pd.read_csv(csv_path)
+        df.columns = df.columns.str.strip()
+        result_dict_CE = {}
+        for index, row in df.iterrows():
+            # Create a nested dictionary for each symbol
+            symbol_dict = {
+                'Symbol': row['Symbol'],
+                'Target': row['Target'],
+                'Stoploss':row['Stoploss'],
+                'SmallTF': row['SmallTF'],
+                'BigTF': row['BigTF'],
+                "cool": row['Sync'],
+                "lotsize": row['lotsize'],
+                "runtime": datetime.now(),
+                'percentageChange':None,"previousclose":None,"presentclose":None,
+                'CE_LTP': None,
+                'TargetValue': None,
+                'StoplossValue': None,
+
+            }
+            result_dict_CE[row['Symbol']] = symbol_dict
+
+    except Exception as e:
+        print("Error happened in fetching symbol CALL", str(e))
+get_user_settings()
+def get_token(symbol):
+    df= pd.read_csv("Instruments.csv")
+    row = df.loc[df['tradingsymbol'] == symbol]
+    if not row.empty:
+        token = row.iloc[0]['instrument_token']
+        return token
+def find_min_percentage_change(data):
+    filtered_data = {k: v for k, v in data.items() if v['percentageChange'] is not None}
+    min_entry = min(filtered_data.items(), key=lambda item: item[1]['percentageChange'])
+    return min_entry
+def find_max_percentage_change(data):
+    filtered_data = {k: v for k, v in data.items() if v['percentageChange'] is not None}
+    max_entry = max(filtered_data.items(), key=lambda item: item[1]['percentageChange'])
+    return max_entry
+def main_strategy ():
+    global result_dict_CE,result_dict_PE,BUYCE,BUYPE
+    # CE
+    try:
+        for symbol, params in result_dict_CE.items():
+            symbol_value = params['Symbol']
+            timestamp = datetime.now()
+            timestamp = timestamp.strftime("%d/%m/%Y %H:%M:%S")
+
+            if isinstance(symbol_value, str):
+                # print("params['Symbol']", params['Symbol'])
+
+                if datetime.now() >= params["runtime"]:
+                    if params["cool"] == True:
+                        time.sleep(int(3))
+
+                    print("token: ",get_token(params['Symbol']))
+                    print("BigTF: ",params['BigTF'])
+                    print("Symbol: ",params['Symbol'])
+                    try:
+                        Bigdata = Zerodha_Integration.get_historical_data(Token=get_token(params['Symbol']),
+                                                                          timeframe=params['BigTF'],
+                                                                       sym=params['Symbol'])
+                    except Exception as e:
+                        print("checking data again")
+                        time.sleep(int(3))
+                        Bigdata = Zerodha_Integration.get_historical_data(Token=get_token(params['Symbol']),
+                                                                          timeframe=params['BigTF'],
+                                                                          sym=params['Symbol'])
+                    last_three_rows = Bigdata.tail(3)
+                    row2 = last_three_rows.iloc[1]
+                    row1 = last_three_rows.iloc[2]
+                    params['previousclose']=float(row2['close'])
+                    params['presentclose']=float(row1['close'])
+                    print("previousclose: ",params['previousclose'])
+                    print("presentclose: ", params['presentclose'])
+                    next_specific_part_time = datetime.now() + timedelta(seconds=determine_min(params["SmallTF"]) * 60)
+                    next_specific_part_time = round_down_to_interval(next_specific_part_time,
+                                                                     determine_min(params["SmallTF"]))
+                    print("Next datafetch time = ", next_specific_part_time)
+                    params['runtime'] = next_specific_part_time
+
+
+                params['CE_LTP'] = Zerodha_Integration.get_ltp_option(params['Symbol'])
+                params['percentageChange'] = calculate_percentage_change(previous_close=params['previousclose'], present_close=params['presentclose'])
+        ce_contract_detail=find_max_percentage_change(result_dict_CE)
+        symbol_max, details_max = ce_contract_detail
+        print(f"Condition check for : {symbol_max},ltp: {Zerodha_Integration.get_ltp_option(symbol_max)}")
+        if (
+            BUYCE==False
+           ):
+                BUYCE =True
+                usedltp = Zerodha_Integration.get_ltp_option(symbol_max)
+                details_max['TargetValue'] = usedltp+details_max['Target']
+                details_max['StoplossValue'] = usedltp-details_max['Stoploss']
+                # sname = f"{ExchangeSymbol}|{str(expiery)}|{str(int(strike))}|{contract}"
+                # Algofox.Buy_order_algofox(symbol=sname, quantity=details_max['lotsize'], instrumentType="OPTIDX",
+                #                               direction="BUY", price=usedltp, product="MIS",
+                #                               order_typ="MARKET", strategy="PRO1",username=username,password=password,role=role)
+                orderlog=f"{timestamp} Buy order executed call side @ {symbol_max} , @ {usedltp}, sl={details_max['TargetValue'] },tp={details_max['StoplossValue']}"
+                print(orderlog)
+                write_to_order_logs(orderlog)
+
+        if BUYCE == True and  details_max['TargetValue'] and details_max['StoplossValue']>0:
+            usedltp = Zerodha_Integration.get_ltp_option(symbol_max)
+            print(f"{timestamp} usedltp: ", usedltp)
+            print(f"{timestamp} details_max['TargetValue']: ", details_max['TargetValue'])
+            if usedltp >= details_max['TargetValue'] and details_max['TargetValue'] > 0:
+                BUYCE = False
+                orderlog = f"{timestamp} Target executed call side @ {symbol_max} , @ {usedltp}"
+                print(orderlog)
+                write_to_order_logs(orderlog)
+
+            if usedltp <= details_max['StoplossValue'] and details_max['StoplossValue'] > 0:
+                BUYCE = False
+                orderlog = f"{timestamp} Stoploss executed call side @ {symbol_max} , @ {usedltp}"
+                print(orderlog)
+                write_to_order_logs(orderlog)
+                    # PE
+        for symbol, params in result_dict_PE.items():
+            symbol_value = params['Symbol']
+            timestamp = datetime.now()
+            timestamp = timestamp.strftime("%d/%m/%Y %H:%M:%S")
+            if isinstance(symbol_value, str):
+                if datetime.now() >= params["runtime"]:
+                    if params["cool"] == True:
+                        time.sleep(int(3))
+                    try:
+                        print("token: ", get_token(params['Symbol']))
+                        print("BigTF: ", params['BigTF'])
+                        print("Symbol: ", params['Symbol'])
+                        Bigdata = Zerodha_Integration.get_historical_data(Token=get_token(params['Symbol']),
+                                                                          timeframe=params['BigTF'],
+                                                                          sym=params['Symbol'])
+                    except Exception as e:
+                        print("checking data again")
+                        time.sleep(int(5))
+                        Bigdata = Zerodha_Integration.get_historical_data(Token=get_token(params['Symbol']),
+                                                                          timeframe=params['BigTF'],
+                                                                          sym=params['Symbol'])
+                    last_three_rows = Bigdata.tail(3)
+                    row2 = last_three_rows.iloc[1]
+                    row1 = last_three_rows.iloc[2]
+                    params['previousclose'] = float(row2['close'])
+                    params['presentclose'] = float(row1['close'])
+                    next_specific_part_time = datetime.now() + timedelta(seconds=determine_min(params["SmallTF"]) * 60)
+                    next_specific_part_time = round_down_to_interval(next_specific_part_time,
+                                                                     determine_min(params["SmallTF"]))
+                    print("Next datafetch time = ", next_specific_part_time)
+                    params['runtime'] = next_specific_part_time
+
+                params['percentageChange'] = calculate_percentage_change(previous_close=params['previousclose'],
+                                                                         present_close=params['presentclose'])
+        pe_contract_detail=find_min_percentage_change(result_dict_PE)
+        symbol_min, details_min = pe_contract_detail
+        print(f"Condition check for : {symbol_min},ltp: {Zerodha_Integration.get_ltp_option(symbol_min)}")
+        if (
+                BUYPE==False
+        ):
+            usedltp = Zerodha_Integration.get_ltp_option(symbol_min)
+            BUYPE =True
+            details_min['TargetValue'] = usedltp+details_min['Target']
+            details_min['StoplossValue'] = usedltp-details_min['Stoploss']
+            orderlog=f"{timestamp} Buy order executed Put side @ {symbol_min} , @ {usedltp}, sl={details_min['TargetValue'] },tp={details_min['StoplossValue']}"
+            print(orderlog)
+            write_to_order_logs(orderlog)
+
+        if BUYPE ==True and  details_min['TargetValue'] and details_min['StoplossValue']>0:
+            usedltp= Zerodha_Integration.get_ltp_option(symbol_min)
+            print(f"{timestamp} usedltp: ", usedltp)
+            print(f"{timestamp} details_min['TargetValue'] : ", details_min['TargetValue'] )
+            if usedltp>=details_min['TargetValue'] and details_min['TargetValue']>0:
+                BUYPE=False
+                orderlog = f"{timestamp} Target executed Put side @ {symbol_min} , @ {usedltp}"
+                print(orderlog)
+                write_to_order_logs(orderlog)
+
+            if usedltp<=details_min['StoplossValue'] and details_min['StoplossValue']>0:
+                BUYPE = False
+                orderlog = f"{timestamp} Stoploss executed Put side @ {symbol_min} , @ {usedltp}"
+                print(orderlog)
+                write_to_order_logs(orderlog)
+
+    except Exception as e:
+        print("Error happened in Main strategy loop: ", str(e))
+        traceback.print_exc()
+
+
+
+while True:
+    main_strategy()
+    time.sleep(1)
+
+
+
+
+

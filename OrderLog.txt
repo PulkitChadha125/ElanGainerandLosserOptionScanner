@@ -1,0 +1,4 @@
+14/05/2024 20:18:30 Buy order executed call side @ BANKNIFTY2460548000CE , @ 1398.1, sl=1408.1,tp=1378.1
+14/05/2024 20:19:10 Buy order executed Put side @ BANKNIFTY24MAY48900PE , @ 920.3, sl=930.3,tp=900.3
+14/05/2024 20:28:55 Buy order executed call side @ BANKNIFTY2460548000CE , @ 1398.1, sl=1408.1,tp=1378.1
+14/05/2024 20:29:32 Buy order executed Put side @ BANKNIFTY24MAY48900PE , @ 920.3, sl=930.3,tp=900.3
