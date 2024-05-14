@@ -298,14 +298,14 @@ def main_strategy ():
         traceback.print_exc()
 
 
-
+# except kmjm;mj
 while True:
     main_strategy()
     time.sleep(1)
 
 
 
-    
+
 
 
 
