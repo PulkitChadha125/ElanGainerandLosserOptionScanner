@@ -254,8 +254,7 @@ def main_strategy ():
                     row1 = last_three_rows.iloc[2]
                     params['previousclose']=float(row2['close'])
                     params['presentclose']=float(row1['close'])
-                    print("previousclose: ",params['previousclose'])
-                    print("presentclose: ", params['presentclose'])
+
                     next_specific_part_time = datetime.now() + timedelta(seconds=determine_min(params["SmallTF"]) * 60)
                     next_specific_part_time = round_down_to_interval(next_specific_part_time,
                                                                      determine_min(params["SmallTF"]))
@@ -264,7 +263,11 @@ def main_strategy ():
 
 
                 params['CE_LTP'] = Zerodha_Integration.get_ltp_option(params['Symbol'])
+                print("Contract: ",params['Symbol'])
+                print("previousclose: ", params['previousclose'])
+                print("presentclose: ", params['CE_LTP'])
                 params['percentageChange'] = calculate_percentage_change(previous_close=params['previousclose'], present_close=params['CE_LTP'])
+                print("percentageChange: ", params['percentageChange'])
         ce_contract_detail=find_max_percentage_change(result_dict_CE)
         symbol_max, details_max = ce_contract_detail
         print(f"Condition check for : {symbol_max},ltp: {Zerodha_Integration.get_ltp_option(symbol_max)}")
@@ -330,16 +333,19 @@ def main_strategy ():
                     row1 = last_three_rows.iloc[2]
                     params['previousclose'] = float(row2['close'])
                     params['presentclose'] = float(row1['close'])
-                    print("previousclose: ",params['previousclose'] )
-                    print("presentclose: ", params['presentclose'])
+
                     next_specific_part_time = datetime.now() + timedelta(seconds=determine_min(params["SmallTF"]) * 60)
                     next_specific_part_time = round_down_to_interval(next_specific_part_time,
                                                                      determine_min(params["SmallTF"]))
                     print("Next datafetch time = ", next_specific_part_time)
                     params['runtime'] = next_specific_part_time
                 params['PE_LTP'] = Zerodha_Integration.get_ltp_option(params['Symbol'])
+                print("Contract: ", params['Symbol'])
+                print("previousclose: ", params['previousclose'])
+                print("presentclose: ", params['PE_LTP'])
                 params['percentageChange'] = calculate_percentage_change(previous_close=params['previousclose'],
                                                                          present_close=params['PE_LTP'])
+                print("percentageChange: ", params['percentageChange'])
         pe_contract_detail=find_min_percentage_change(result_dict_PE)
         symbol_min, details_min = pe_contract_detail
         print(f"Condition check for : {symbol_min},ltp: {Zerodha_Integration.get_ltp_option(symbol_min)}")
