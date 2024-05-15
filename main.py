@@ -84,6 +84,7 @@ url = credentials_dict.get('algofoxurl')
 username= credentials_dict.get('algofoxusername')
 algofoxpassword=credentials_dict.get('algofoxpassword')
 role= credentials_dict.get('ROLE')
+strategytag=credentials_dict.get('strategytag')
 createurl(url)
 
 loginresult=login_algpfox(username=username, password=algofoxpassword, role=role)
@@ -227,7 +228,7 @@ def write_dict_to_csv(data_dict, filename):
         print(f"An error occurred while writing to CSV: {str(e)}")
 
 def main_strategy ():
-    global result_dict_CE,result_dict_PE,BUYCE,BUYPE,username, algofoxpassword, role
+    global result_dict_CE,result_dict_PE,BUYCE,BUYPE,username, algofoxpassword, role,strategytag
     # CE
     try:
         for symbol, params in result_dict_CE.items():
@@ -281,7 +282,7 @@ def main_strategy ():
                 sname = f"{get_basesymbol(symbol_max)}|{str(get_expiery(symbol_max))}|{str(int(get_strike(symbol_max)))}|CE"
                 Buy_order_algofox(symbol=sname, quantity=int(details_max['lotsize']), instrumentType="OPTIDX",
                                                direction="BUY", price=usedltp, product="MIS",
-                                               order_typ="MARKET", strategy="PRO1",username=username,password=algofoxpassword,role=role)
+                                               order_typ="MARKET", strategy=strategytag,username=username,password=algofoxpassword,role=role)
                 orderlog=f"{timestamp} Buy order executed call side @ {symbol_max} , @ {usedltp}, sl={details_max['TargetValue'] },tp={details_max['StoplossValue']}"
                 print(orderlog)
                 write_to_order_logs(orderlog)
@@ -296,7 +297,7 @@ def main_strategy ():
                 sname = f"{get_basesymbol(symbol_max)}|{str(get_expiery(symbol_max))}|{str(int(get_strike(symbol_max)))}|CE"
                 Sell_order_algofox(symbol=sname, quantity=int(details_max['lotsize']), instrumentType="OPTIDX",
                                                direction="BUY", price=usedltp, product="MIS",
-                                               order_typ="MARKET", strategy="PRO1",username=username,password=algofoxpassword,role=role)
+                                               order_typ="MARKET", strategy=strategytag,username=username,password=algofoxpassword,role=role)
                 print(orderlog)
                 write_to_order_logs(orderlog)
 
@@ -306,7 +307,7 @@ def main_strategy ():
                 sname = f"{get_basesymbol(symbol_max)}|{str(get_expiery(symbol_max))}|{str(int(get_strike(symbol_max)))}|CE"
                 Sell_order_algofox(symbol=sname, quantity=int(details_max['lotsize']), instrumentType="OPTIDX",
                                                direction="BUY", price=usedltp, product="MIS",
-                                               order_typ="MARKET", strategy="PRO1",username=username,password=algofoxpassword,role=role)
+                                               order_typ="MARKET", strategy=strategytag,username=username,password=algofoxpassword,role=role)
                 print(orderlog)
                 write_to_order_logs(orderlog)
                     # PE
@@ -359,7 +360,7 @@ def main_strategy ():
             sname = f"{get_basesymbol(symbol_max)}|{str(get_expiery(symbol_max))}|{str(int(get_strike(symbol_max)))}|PE"
             Buy_order_algofox(symbol=sname, quantity=int(details_max['lotsize']), instrumentType="OPTIDX",
                                       direction="BUY", price=usedltp, product="MIS",
-                                      order_typ="MARKET", strategy="PRO1", username=username, password=algofoxpassword,
+                                      order_typ="MARKET", strategy=strategytag, username=username, password=algofoxpassword,
                                       role=role)
             orderlog=f"{timestamp} Buy order executed Put side @ {symbol_min} , @ {usedltp}, sl={details_min['TargetValue'] },tp={details_min['StoplossValue']}"
             print(orderlog)
@@ -374,7 +375,7 @@ def main_strategy ():
                 sname = f"{get_basesymbol(symbol_max)}|{str(get_expiery(symbol_max))}|{str(int(get_strike(symbol_max)))}|PE"
                 Sell_order_algofox(symbol=sname, quantity=int(details_max['lotsize']), instrumentType="OPTIDX",
                                           direction="BUY", price=usedltp, product="MIS",
-                                          order_typ="MARKET", strategy="PRO1", username=username, password=algofoxpassword,
+                                          order_typ="MARKET", strategy=strategytag, username=username, password=algofoxpassword,
                                           role=role)
                 orderlog = f"{timestamp} Target executed Put side @ {symbol_min} , @ {usedltp}"
                 print(orderlog)
@@ -385,7 +386,7 @@ def main_strategy ():
                 sname = f"{get_basesymbol(symbol_max)}|{str(get_expiery(symbol_max))}|{str(int(get_strike(symbol_max)))}|PE"
                 Sell_order_algofox(symbol=sname, quantity=int(details_max['lotsize']), instrumentType="OPTIDX",
                                            direction="BUY", price=usedltp, product="MIS",
-                                           order_typ="MARKET", strategy="PRO1", username=username, password=algofoxpassword,
+                                           order_typ="MARKET", strategy=strategytag, username=username, password=algofoxpassword,
                                            role=role)
                 orderlog = f"{timestamp} Stoploss executed Put side @ {symbol_min} , @ {usedltp}"
                 print(orderlog)
