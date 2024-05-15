@@ -346,7 +346,7 @@ def main_strategy ():
                 params['percentageChange'] = calculate_percentage_change(previous_close=params['previousclose'],
                                                                          present_close=params['PE_LTP'])
                 print("percentageChange: ", params['percentageChange'])
-        pe_contract_detail=find_min_percentage_change(result_dict_PE)
+        pe_contract_detail=find_max_percentage_change(result_dict_PE)
         symbol_min, details_min = pe_contract_detail
         print(f"Condition check for : {symbol_min},ltp: {Zerodha_Integration.get_ltp_option(symbol_min)}")
         if (
@@ -399,7 +399,6 @@ def main_strategy ():
         traceback.print_exc()
 
 
-# except kmjm;mj
 while True:
     main_strategy()
     time.sleep(1)
