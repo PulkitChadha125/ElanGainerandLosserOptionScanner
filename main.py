@@ -4,7 +4,8 @@ import pandas as pd
 import pyotp
 import Zerodha_Integration
 from datetime import datetime, timedelta, timezone
-import Algofox
+from Algofox import *
+
 BUYCE=False
 BUYPE=False
 tpce=False
@@ -77,6 +78,22 @@ twofa = pyotp.TOTP(fakey)
 twofa = twofa.now()
 Zerodha_Integration.login(user_id, password, twofa)
 Zerodha_Integration.get_all_instruments()
+url = credentials_dict.get('algofoxurl')
+username= credentials_dict.get('algofoxusername')
+password=credentials_dict.get('algofoxpassword')
+role= credentials_dict.get('ROLE')
+createurl(url)
+
+loginresult=login_algpfox(username=username, password=password, role=role)
+
+
+if loginresult!=200:
+    print("Algofoz credential wrong, shutdown down Trde Copier, please provide correct details and run again otherwise program will not work correctly ...")
+    time.sleep(10000)
+
+
+
+
 def calculate_percentage_change(previous_close, present_close):
     price_change = present_close - previous_close
     percentage_change = (price_change / previous_close) * 100
@@ -136,12 +153,34 @@ def get_user_settings():
     except Exception as e:
         print("Error happened in fetching symbol CALL", str(e))
 get_user_settings()
+
 def get_token(symbol):
     df= pd.read_csv("Instruments.csv")
     row = df.loc[df['tradingsymbol'] == symbol]
     if not row.empty:
         token = row.iloc[0]['instrument_token']
         return token
+
+
+def get_strike(symbol):
+    df = pd.read_csv("Instruments.csv")
+    row = df.loc[df['tradingsymbol'] == symbol]
+    if not row.empty:
+        token = row.iloc[0]['strike']
+        return token
+def get_expiery(symbol):
+    df = pd.read_csv("Instruments.csv")
+    row = df.loc[df['tradingsymbol'] == symbol]
+    if not row.empty:
+        token = row.iloc[0]['expiry']
+        return token
+def get_basesymbol(symbol):
+    df = pd.read_csv("Instruments.csv")
+    row = df.loc[df['tradingsymbol'] == symbol]
+    if not row.empty:
+        token = row.iloc[0]['name']
+        return token
+
 def find_min_percentage_change(data):
     filtered_data = {k: v for k, v in data.items() if v['percentageChange'] is not None}
     min_entry = min(filtered_data.items(), key=lambda item: item[1]['percentageChange'])
@@ -160,8 +199,6 @@ def main_strategy ():
             timestamp = timestamp.strftime("%d/%m/%Y %H:%M:%S")
 
             if isinstance(symbol_value, str):
-                # print("params['Symbol']", params['Symbol'])
-
                 if datetime.now() >= params["runtime"]:
                     if params["cool"] == True:
                         time.sleep(int(3))
@@ -205,10 +242,10 @@ def main_strategy ():
                 usedltp = Zerodha_Integration.get_ltp_option(symbol_max)
                 details_max['TargetValue'] = usedltp+details_max['Target']
                 details_max['StoplossValue'] = usedltp-details_max['Stoploss']
-                # sname = f"{ExchangeSymbol}|{str(expiery)}|{str(int(strike))}|{contract}"
-                # Algofox.Buy_order_algofox(symbol=sname, quantity=details_max['lotsize'], instrumentType="OPTIDX",
-                #                               direction="BUY", price=usedltp, product="MIS",
-                #                               order_typ="MARKET", strategy="PRO1",username=username,password=password,role=role)
+                sname = f"{get_basesymbol(symbol_max)}|{str(get_expiery(symbol_max))}|{str(int(get_strike(symbol_max)))}|CE"
+                Buy_order_algofox(symbol=sname, quantity=details_max['lotsize'], instrumentType="OPTIDX",
+                                               direction="BUY", price=usedltp, product="MIS",
+                                               order_typ="MARKET", strategy="PRO1",username=username,password=password,role=role)
                 orderlog=f"{timestamp} Buy order executed call side @ {symbol_max} , @ {usedltp}, sl={details_max['TargetValue'] },tp={details_max['StoplossValue']}"
                 print(orderlog)
                 write_to_order_logs(orderlog)
@@ -220,12 +257,20 @@ def main_strategy ():
             if usedltp >= details_max['TargetValue'] and details_max['TargetValue'] > 0:
                 BUYCE = False
                 orderlog = f"{timestamp} Target executed call side @ {symbol_max} , @ {usedltp}"
+                sname = f"{get_basesymbol(symbol_max)}|{str(get_expiery(symbol_max))}|{str(int(get_strike(symbol_max)))}|CE"
+                Sell_order_algofox(symbol=sname, quantity=details_max['lotsize'], instrumentType="OPTIDX",
+                                               direction="BUY", price=usedltp, product="MIS",
+                                               order_typ="MARKET", strategy="PRO1",username=username,password=password,role=role)
                 print(orderlog)
                 write_to_order_logs(orderlog)
 
             if usedltp <= details_max['StoplossValue'] and details_max['StoplossValue'] > 0:
                 BUYCE = False
                 orderlog = f"{timestamp} Stoploss executed call side @ {symbol_max} , @ {usedltp}"
+                sname = f"{get_basesymbol(symbol_max)}|{str(get_expiery(symbol_max))}|{str(int(get_strike(symbol_max)))}|CE"
+                Sell_order_algofox(symbol=sname, quantity=details_max['lotsize'], instrumentType="OPTIDX",
+                                               direction="BUY", price=usedltp, product="MIS",
+                                               order_typ="MARKET", strategy="PRO1",username=username,password=password,role=role)
                 print(orderlog)
                 write_to_order_logs(orderlog)
                     # PE
@@ -273,6 +318,11 @@ def main_strategy ():
             BUYPE =True
             details_min['TargetValue'] = usedltp+details_min['Target']
             details_min['StoplossValue'] = usedltp-details_min['Stoploss']
+            sname = f"{get_basesymbol(symbol_max)}|{str(get_expiery(symbol_max))}|{str(int(get_strike(symbol_max)))}|CE"
+            Buy_order_algofox(symbol=sname, quantity=details_max['lotsize'], instrumentType="OPTIDX",
+                                      direction="BUY", price=usedltp, product="MIS",
+                                      order_typ="MARKET", strategy="PRO1", username=username, password=password,
+                                      role=role)
             orderlog=f"{timestamp} Buy order executed Put side @ {symbol_min} , @ {usedltp}, sl={details_min['TargetValue'] },tp={details_min['StoplossValue']}"
             print(orderlog)
             write_to_order_logs(orderlog)
@@ -283,12 +333,22 @@ def main_strategy ():
             print(f"{timestamp} details_min['TargetValue'] : ", details_min['TargetValue'] )
             if usedltp>=details_min['TargetValue'] and details_min['TargetValue']>0:
                 BUYPE=False
+                sname = f"{get_basesymbol(symbol_max)}|{str(get_expiery(symbol_max))}|{str(int(get_strike(symbol_max)))}|CE"
+                Sell_order_algofox(symbol=sname, quantity=details_max['lotsize'], instrumentType="OPTIDX",
+                                          direction="BUY", price=usedltp, product="MIS",
+                                          order_typ="MARKET", strategy="PRO1", username=username, password=password,
+                                          role=role)
                 orderlog = f"{timestamp} Target executed Put side @ {symbol_min} , @ {usedltp}"
                 print(orderlog)
                 write_to_order_logs(orderlog)
 
             if usedltp<=details_min['StoplossValue'] and details_min['StoplossValue']>0:
                 BUYPE = False
+                sname = f"{get_basesymbol(symbol_max)}|{str(get_expiery(symbol_max))}|{str(int(get_strike(symbol_max)))}|CE"
+                Sell_order_algofox(symbol=sname, quantity=details_max['lotsize'], instrumentType="OPTIDX",
+                                           direction="BUY", price=usedltp, product="MIS",
+                                           order_typ="MARKET", strategy="PRO1", username=username, password=password,
+                                           role=role)
                 orderlog = f"{timestamp} Stoploss executed Put side @ {symbol_min} , @ {usedltp}"
                 print(orderlog)
                 write_to_order_logs(orderlog)
