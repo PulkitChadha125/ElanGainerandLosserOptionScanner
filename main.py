@@ -356,7 +356,7 @@ def main_strategy ():
             BUYPE =True
             details_min['TargetValue'] = usedltp+details_min['Target']
             details_min['StoplossValue'] = usedltp-details_min['Stoploss']
-            sname = f"{get_basesymbol(symbol_max)}|{str(get_expiery(symbol_max))}|{str(int(get_strike(symbol_max)))}|CE"
+            sname = f"{get_basesymbol(symbol_max)}|{str(get_expiery(symbol_max))}|{str(int(get_strike(symbol_max)))}|PE"
             Buy_order_algofox(symbol=sname, quantity=int(details_max['lotsize']), instrumentType="OPTIDX",
                                       direction="BUY", price=usedltp, product="MIS",
                                       order_typ="MARKET", strategy="PRO1", username=username, password=algofoxpassword,
@@ -371,7 +371,7 @@ def main_strategy ():
             print(f"{timestamp} details_min['TargetValue'] : ", details_min['TargetValue'] )
             if usedltp>=details_min['TargetValue'] and details_min['TargetValue']>0:
                 BUYPE=False
-                sname = f"{get_basesymbol(symbol_max)}|{str(get_expiery(symbol_max))}|{str(int(get_strike(symbol_max)))}|CE"
+                sname = f"{get_basesymbol(symbol_max)}|{str(get_expiery(symbol_max))}|{str(int(get_strike(symbol_max)))}|PE"
                 Sell_order_algofox(symbol=sname, quantity=int(details_max['lotsize']), instrumentType="OPTIDX",
                                           direction="BUY", price=usedltp, product="MIS",
                                           order_typ="MARKET", strategy="PRO1", username=username, password=algofoxpassword,
@@ -382,7 +382,7 @@ def main_strategy ():
 
             if usedltp<=details_min['StoplossValue'] and details_min['StoplossValue']>0:
                 BUYPE = False
-                sname = f"{get_basesymbol(symbol_max)}|{str(get_expiery(symbol_max))}|{str(int(get_strike(symbol_max)))}|CE"
+                sname = f"{get_basesymbol(symbol_max)}|{str(get_expiery(symbol_max))}|{str(int(get_strike(symbol_max)))}|PE"
                 Sell_order_algofox(symbol=sname, quantity=int(details_max['lotsize']), instrumentType="OPTIDX",
                                            direction="BUY", price=usedltp, product="MIS",
                                            order_typ="MARKET", strategy="PRO1", username=username, password=algofoxpassword,
