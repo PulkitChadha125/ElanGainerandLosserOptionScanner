@@ -5,6 +5,8 @@ import pyotp
 import Zerodha_Integration
 from datetime import datetime, timedelta, timezone
 from Algofox import *
+import csv
+import os
 
 BUYCE=False
 BUYPE=False
@@ -80,11 +82,11 @@ Zerodha_Integration.login(user_id, password, twofa)
 Zerodha_Integration.get_all_instruments()
 url = credentials_dict.get('algofoxurl')
 username= credentials_dict.get('algofoxusername')
-password=credentials_dict.get('algofoxpassword')
+algofoxpassword=credentials_dict.get('algofoxpassword')
 role= credentials_dict.get('ROLE')
 createurl(url)
 
-loginresult=login_algpfox(username=username, password=password, role=role)
+loginresult=login_algpfox(username=username, password=algofoxpassword, role=role)
 
 
 if loginresult!=200:
@@ -189,8 +191,43 @@ def find_max_percentage_change(data):
     filtered_data = {k: v for k, v in data.items() if v['percentageChange'] is not None}
     max_entry = max(filtered_data.items(), key=lambda item: item[1]['percentageChange'])
     return max_entry
+
+
+
+def write_dict_to_csv(data_dict, filename):
+    """
+    Write a dictionary to a CSV file, clearing previous data.
+
+    Parameters:
+    data_dict (dict): The dictionary to write to the CSV file.
+    filename (str): The name of the CSV file.
+    """
+    try:
+        # Ensure the dictionary is not empty
+        if not data_dict:
+            raise ValueError("The dictionary is empty")
+
+        # Extract field names from the first item
+        fieldnames = list(data_dict[next(iter(data_dict))].keys())
+
+        # Open the CSV file for writing (this will clear previous data)
+        with open(filename, mode='w', newline='') as csv_file:
+            writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+
+            # Write the header
+            writer.writeheader()
+
+            # Write the rows
+            for key, value in data_dict.items():
+                writer.writerow(value)
+
+        print(f"Dictionary successfully written to {filename}")
+
+    except Exception as e:
+        print(f"An error occurred while writing to CSV: {str(e)}")
+
 def main_strategy ():
-    global result_dict_CE,result_dict_PE,BUYCE,BUYPE
+    global result_dict_CE,result_dict_PE,BUYCE,BUYPE,username, algofoxpassword, role
     # CE
     try:
         for symbol, params in result_dict_CE.items():
@@ -202,10 +239,6 @@ def main_strategy ():
                 if datetime.now() >= params["runtime"]:
                     if params["cool"] == True:
                         time.sleep(int(3))
-
-                    print("token: ",get_token(params['Symbol']))
-                    print("BigTF: ",params['BigTF'])
-                    print("Symbol: ",params['Symbol'])
                     try:
                         Bigdata = Zerodha_Integration.get_historical_data(Token=get_token(params['Symbol']),
                                                                           timeframe=params['BigTF'],
@@ -231,7 +264,7 @@ def main_strategy ():
 
 
                 params['CE_LTP'] = Zerodha_Integration.get_ltp_option(params['Symbol'])
-                params['percentageChange'] = calculate_percentage_change(previous_close=params['previousclose'], present_close=params['presentclose'])
+                params['percentageChange'] = calculate_percentage_change(previous_close=params['previousclose'], present_close=params['CE_LTP'])
         ce_contract_detail=find_max_percentage_change(result_dict_CE)
         symbol_max, details_max = ce_contract_detail
         print(f"Condition check for : {symbol_max},ltp: {Zerodha_Integration.get_ltp_option(symbol_max)}")
@@ -243,9 +276,9 @@ def main_strategy ():
                 details_max['TargetValue'] = usedltp+details_max['Target']
                 details_max['StoplossValue'] = usedltp-details_max['Stoploss']
                 sname = f"{get_basesymbol(symbol_max)}|{str(get_expiery(symbol_max))}|{str(int(get_strike(symbol_max)))}|CE"
-                Buy_order_algofox(symbol=sname, quantity=details_max['lotsize'], instrumentType="OPTIDX",
+                Buy_order_algofox(symbol=sname, quantity=int(details_max['lotsize']), instrumentType="OPTIDX",
                                                direction="BUY", price=usedltp, product="MIS",
-                                               order_typ="MARKET", strategy="PRO1",username=username,password=password,role=role)
+                                               order_typ="MARKET", strategy="PRO1",username=username,password=algofoxpassword,role=role)
                 orderlog=f"{timestamp} Buy order executed call side @ {symbol_max} , @ {usedltp}, sl={details_max['TargetValue'] },tp={details_max['StoplossValue']}"
                 print(orderlog)
                 write_to_order_logs(orderlog)
@@ -258,9 +291,9 @@ def main_strategy ():
                 BUYCE = False
                 orderlog = f"{timestamp} Target executed call side @ {symbol_max} , @ {usedltp}"
                 sname = f"{get_basesymbol(symbol_max)}|{str(get_expiery(symbol_max))}|{str(int(get_strike(symbol_max)))}|CE"
-                Sell_order_algofox(symbol=sname, quantity=details_max['lotsize'], instrumentType="OPTIDX",
+                Sell_order_algofox(symbol=sname, quantity=int(details_max['lotsize']), instrumentType="OPTIDX",
                                                direction="BUY", price=usedltp, product="MIS",
-                                               order_typ="MARKET", strategy="PRO1",username=username,password=password,role=role)
+                                               order_typ="MARKET", strategy="PRO1",username=username,password=algofoxpassword,role=role)
                 print(orderlog)
                 write_to_order_logs(orderlog)
 
@@ -268,9 +301,9 @@ def main_strategy ():
                 BUYCE = False
                 orderlog = f"{timestamp} Stoploss executed call side @ {symbol_max} , @ {usedltp}"
                 sname = f"{get_basesymbol(symbol_max)}|{str(get_expiery(symbol_max))}|{str(int(get_strike(symbol_max)))}|CE"
-                Sell_order_algofox(symbol=sname, quantity=details_max['lotsize'], instrumentType="OPTIDX",
+                Sell_order_algofox(symbol=sname, quantity=int(details_max['lotsize']), instrumentType="OPTIDX",
                                                direction="BUY", price=usedltp, product="MIS",
-                                               order_typ="MARKET", strategy="PRO1",username=username,password=password,role=role)
+                                               order_typ="MARKET", strategy="PRO1",username=username,password=algofoxpassword,role=role)
                 print(orderlog)
                 write_to_order_logs(orderlog)
                     # PE
@@ -283,9 +316,6 @@ def main_strategy ():
                     if params["cool"] == True:
                         time.sleep(int(3))
                     try:
-                        print("token: ", get_token(params['Symbol']))
-                        print("BigTF: ", params['BigTF'])
-                        print("Symbol: ", params['Symbol'])
                         Bigdata = Zerodha_Integration.get_historical_data(Token=get_token(params['Symbol']),
                                                                           timeframe=params['BigTF'],
                                                                           sym=params['Symbol'])
@@ -300,14 +330,16 @@ def main_strategy ():
                     row1 = last_three_rows.iloc[2]
                     params['previousclose'] = float(row2['close'])
                     params['presentclose'] = float(row1['close'])
+                    print("previousclose: ",params['previousclose'] )
+                    print("presentclose: ", params['presentclose'])
                     next_specific_part_time = datetime.now() + timedelta(seconds=determine_min(params["SmallTF"]) * 60)
                     next_specific_part_time = round_down_to_interval(next_specific_part_time,
                                                                      determine_min(params["SmallTF"]))
                     print("Next datafetch time = ", next_specific_part_time)
                     params['runtime'] = next_specific_part_time
-
+                params['PE_LTP'] = Zerodha_Integration.get_ltp_option(params['Symbol'])
                 params['percentageChange'] = calculate_percentage_change(previous_close=params['previousclose'],
-                                                                         present_close=params['presentclose'])
+                                                                         present_close=params['PE_LTP'])
         pe_contract_detail=find_min_percentage_change(result_dict_PE)
         symbol_min, details_min = pe_contract_detail
         print(f"Condition check for : {symbol_min},ltp: {Zerodha_Integration.get_ltp_option(symbol_min)}")
@@ -319,9 +351,9 @@ def main_strategy ():
             details_min['TargetValue'] = usedltp+details_min['Target']
             details_min['StoplossValue'] = usedltp-details_min['Stoploss']
             sname = f"{get_basesymbol(symbol_max)}|{str(get_expiery(symbol_max))}|{str(int(get_strike(symbol_max)))}|CE"
-            Buy_order_algofox(symbol=sname, quantity=details_max['lotsize'], instrumentType="OPTIDX",
+            Buy_order_algofox(symbol=sname, quantity=int(details_max['lotsize']), instrumentType="OPTIDX",
                                       direction="BUY", price=usedltp, product="MIS",
-                                      order_typ="MARKET", strategy="PRO1", username=username, password=password,
+                                      order_typ="MARKET", strategy="PRO1", username=username, password=algofoxpassword,
                                       role=role)
             orderlog=f"{timestamp} Buy order executed Put side @ {symbol_min} , @ {usedltp}, sl={details_min['TargetValue'] },tp={details_min['StoplossValue']}"
             print(orderlog)
@@ -334,9 +366,9 @@ def main_strategy ():
             if usedltp>=details_min['TargetValue'] and details_min['TargetValue']>0:
                 BUYPE=False
                 sname = f"{get_basesymbol(symbol_max)}|{str(get_expiery(symbol_max))}|{str(int(get_strike(symbol_max)))}|CE"
-                Sell_order_algofox(symbol=sname, quantity=details_max['lotsize'], instrumentType="OPTIDX",
+                Sell_order_algofox(symbol=sname, quantity=int(details_max['lotsize']), instrumentType="OPTIDX",
                                           direction="BUY", price=usedltp, product="MIS",
-                                          order_typ="MARKET", strategy="PRO1", username=username, password=password,
+                                          order_typ="MARKET", strategy="PRO1", username=username, password=algofoxpassword,
                                           role=role)
                 orderlog = f"{timestamp} Target executed Put side @ {symbol_min} , @ {usedltp}"
                 print(orderlog)
@@ -345,13 +377,16 @@ def main_strategy ():
             if usedltp<=details_min['StoplossValue'] and details_min['StoplossValue']>0:
                 BUYPE = False
                 sname = f"{get_basesymbol(symbol_max)}|{str(get_expiery(symbol_max))}|{str(int(get_strike(symbol_max)))}|CE"
-                Sell_order_algofox(symbol=sname, quantity=details_max['lotsize'], instrumentType="OPTIDX",
+                Sell_order_algofox(symbol=sname, quantity=int(details_max['lotsize']), instrumentType="OPTIDX",
                                            direction="BUY", price=usedltp, product="MIS",
-                                           order_typ="MARKET", strategy="PRO1", username=username, password=password,
+                                           order_typ="MARKET", strategy="PRO1", username=username, password=algofoxpassword,
                                            role=role)
                 orderlog = f"{timestamp} Stoploss executed Put side @ {symbol_min} , @ {usedltp}"
                 print(orderlog)
                 write_to_order_logs(orderlog)
+
+        write_dict_to_csv(data_dict=result_dict_CE, filename="CE.csv")
+        write_dict_to_csv(data_dict=result_dict_PE, filename="PE.csv")
 
     except Exception as e:
         print("Error happened in Main strategy loop: ", str(e))
