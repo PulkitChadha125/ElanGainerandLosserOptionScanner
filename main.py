@@ -283,7 +283,7 @@ def main_strategy ():
                 Buy_order_algofox(symbol=sname, quantity=int(details_max['lotsize']), instrumentType="OPTIDX",
                                                direction="BUY", price=usedltp, product="MIS",
                                                order_typ="MARKET", strategy=strategytag,username=username,password=algofoxpassword,role=role)
-                orderlog=f"{timestamp} Buy order executed call side @ {symbol_max} , @ {usedltp}, sl={details_max['TargetValue'] },tp={details_max['StoplossValue']}"
+                orderlog=f"{timestamp} Buy order executed call side @ {symbol_max} , @ {usedltp}, sl={details_max['StoplossValue'] },tp={details_max['TargetValue']}"
                 print(orderlog)
                 write_to_order_logs(orderlog)
 
@@ -362,7 +362,7 @@ def main_strategy ():
                                       direction="BUY", price=usedltp, product="MIS",
                                       order_typ="MARKET", strategy=strategytag, username=username, password=algofoxpassword,
                                       role=role)
-            orderlog=f"{timestamp} Buy order executed Put side @ {symbol_min} , @ {usedltp}, sl={details_min['TargetValue'] },tp={details_min['StoplossValue']}"
+            orderlog=f"{timestamp} Buy order executed Put side @ {symbol_min} , @ {usedltp}, sl={details_min['StoplossValue'] },tp={details_min['TargetValue']}"
             print(orderlog)
             write_to_order_logs(orderlog)
 
