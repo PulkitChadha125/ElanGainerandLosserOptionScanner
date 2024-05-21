@@ -98,13 +98,13 @@ def get_option_symbol (sym,exp,strike,type):
 
 
 def get_historical_data(Token, timeframe,sym):
+    global kite
     from_datetime = datetime.now() - timedelta(days=1)  # From last 1 day
     to_datetime = datetime.now()
-    if kite is None or kite.session is None:
-        print("Kite or session is not initialized")
-        return None
+
     res = kite.historical_data(instrument_token=Token, from_date=from_datetime, to_date=to_datetime,
                                interval=timeframe, continuous=False, oi=True)
+
     price_data = pd.DataFrame(res)
     price_data = convert_to_human_readable(pd.DataFrame(res))
     price_data["SYMBOL"] = sym

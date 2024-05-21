@@ -7,6 +7,7 @@ signal=0
 mainurl=None
 authenticate=None
 placeorder=None
+algofox_token=None
 
 def createurl (url):
     global mainurl,placeorder,authenticate
@@ -16,31 +17,21 @@ def createurl (url):
 
 
 def login_algpfox(username,password,role):
-    global mainurl, placeorder, authenticate
-    req = requests.post(url=authenticate,
+    global mainurl, placeorder, authenticate,algofox_token
+    pec = requests.post(url=authenticate,
                         json={"username": username, "password": password,
                               "role": role})
-
-    req = req.json()
-
+    req = pec.json()
+    t = pec.json()
+    algofox_token = t['data']['token']
     print(req['message'])
-
-
-
     return req['code']
 
 
 def Cover_order_algofox(symbol, quantity,instrumentType, direction,product,strategy,order_typ,price,username,password,role,signal=signal,trigger=None,sll_price=None):
-    global mainurl, placeorder, authenticate
+    global mainurl, placeorder, authenticate,algofox_token
     req = requests.get(mainurl)
     # algfx = json.loads(req)
-
-    req = requests.post(url=authenticate,
-                        json={"username": username, "password": password,
-                              "role": role})
-    t = req.json()
-
-    algofox_token = t['data']['token']
     headers = "Bearer " + algofox_token
     headers = {"Authorization": headers, 'Content-Type': 'application/json'}
 
@@ -67,16 +58,11 @@ def Cover_order_algofox(symbol, quantity,instrumentType, direction,product,strat
 
 
 def Short_order_algofox(symbol, quantity,instrumentType, direction,product,strategy,order_typ,price,username,password,role,signal=signal,trigger=None,sll_price=None):
-    global mainurl, placeorder, authenticate
+    global mainurl, placeorder, authenticate,algofox_token
     req = requests.get(mainurl)
     # algfx = json.loads(req)
 
-    req = requests.post(url=authenticate,
-                        json={"username": username, "password": password,
-                              "role": role})
-    t = req.json()
 
-    algofox_token = t['data']['token']
     headers = "Bearer " + algofox_token
     headers = {"Authorization": headers, 'Content-Type': 'application/json'}
 
@@ -103,16 +89,11 @@ def Short_order_algofox(symbol, quantity,instrumentType, direction,product,strat
 
 
 def Sell_order_algofox(symbol, quantity,instrumentType, direction,product,strategy,order_typ,price,username,password,role,signal=signal,trigger=None,sll_price=None):
-    global mainurl, placeorder, authenticate
+    global mainurl, placeorder, authenticate,algofox_token
     req = requests.get(mainurl)
     # algfx = json.loads(req)
 
-    req = requests.post(url=authenticate,
-                        json={"username": username, "password": password,
-                              "role": role})
-    t = req.json()
 
-    algofox_token = t['data']['token']
     headers = "Bearer " + algofox_token
     headers = {"Authorization": headers, 'Content-Type': 'application/json'}
 
@@ -139,16 +120,11 @@ def Sell_order_algofox(symbol, quantity,instrumentType, direction,product,strate
 
 
 def Buy_order_algofox(symbol, quantity,instrumentType, direction,product,strategy,order_typ,price,username,password,role,signal=signal,trigger=None,sll_price=None):
-    global mainurl, placeorder, authenticate
+    global mainurl, placeorder, authenticate,algofox_token
     req = requests.get(mainurl)
     # algfx = json.loads(req)
 
-    req = requests.post(url=authenticate,
-                        json={"username": username, "password": password,
-                              "role": role})
-    t = req.json()
 
-    algofox_token = t['data']['token']
     headers = "Bearer " + algofox_token
     headers = {"Authorization": headers, 'Content-Type': 'application/json'}
 

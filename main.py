@@ -241,6 +241,9 @@ def main_strategy ():
                     if params["cool"] == True:
                         time.sleep(int(3))
                     try:
+                        print(get_token(params['Symbol']))
+                        print(params['Symbol'])
+                        print(params['BigTF'])
                         Bigdata = Zerodha_Integration.get_historical_data(Token=get_token(params['Symbol']),
                                                                           timeframe=params['BigTF'],
                                                                        sym=params['Symbol'])
