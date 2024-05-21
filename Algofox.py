@@ -1,8 +1,7 @@
 import requests
 import json
+
 signal=0
-
-
 
 mainurl=None
 authenticate=None
